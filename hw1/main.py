@@ -9,3 +9,4 @@ description:
        是否可以找到更合适的模型对给定数据进行拟合？请给出你选择该模型原因、具体的实验结果以及结果的分析。 
 '''
 import numpy as np
+import matplotlib.pyplot as plt
