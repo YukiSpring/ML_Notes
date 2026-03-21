@@ -95,7 +95,7 @@ test_pred = predict(x_test,w_ls,b_ls)
 # mean squared error
 train_mse=np.mean((train_pred - y_train) ** 2)
 test_mse=np.mean((test_pred - y_test) ** 2)
-print(f'Train: {train_mse:.4f}, Test: {test_mse:.4f}')
+print(f'Train: {train_mse:.4f}, Test: {test_mse:.4f}\n')
 
 # 绘图
 x_line_train=np.array([min(x_train),max(x_train)])
@@ -103,7 +103,7 @@ y_line_train=predict(x_line_train,w_ls,b_ls)
 x_line_test=np.array([min(x_test),max(x_test)])
 y_line_test=predict(x_line_test,w_ls,b_ls)
 
-plot_fit(x_line_train,y_line_train,x_line_test,y_line_test,'Least Square Method')
+# plot_fit(x_line_train,y_line_train,x_line_test,y_line_test,'Least Square Method')
 
 '''gradient descent method'''
 
@@ -130,8 +130,8 @@ for i in range(epochs):
     loss_gd=np.mean(error_gd**2)
     loss_history.append(loss_gd)
 
-    if i%100==0:
-        print(f'Epoch {i}: w={w_gd:.4f}, b={b_gd:.4f}, Loss={loss_gd:.4f}')
+    # if i%100==0:
+    #     print(f'Epoch {i}: w={w_gd:.4f}, b={b_gd:.4f}, Loss={loss_gd:.4f}')
 
 print(f'Gradient Descent Method: w={w_gd:.4f}, b={b_gd:.4f}')
 # 计算训练和测试误差
@@ -141,11 +141,40 @@ test_pred_gd=predict(x_test,w_gd,b_gd)
 train_mse_gd=np.mean((train_pred_gd - y_train) ** 2)
 test_mse_gd=np.mean((test_pred_gd - y_test) ** 2)
 
-print(f'Train: {train_mse_gd:.4f}, Test: {test_mse_gd:.4f}')
+print(f'Train: {train_mse_gd:.4f}, Test: {test_mse_gd:.4f}\n')
 
 # 绘图
 x_line_train_gd=np.array([min(x_train),max(x_train)])
 y_line_train_gd=predict(x_line_train_gd,w_gd,b_gd)
 x_line_test_gd=np.array([min(x_test),max(x_test)])
 y_line_test_gd=predict(x_line_test_gd,w_gd,b_gd)
-plot_fit(x_line_train_gd,y_line_train_gd,x_line_test_gd,y_line_test_gd,'Gradient Descent Method')
+# plot_fit(x_line_train_gd,y_line_train_gd,x_line_test_gd,y_line_test_gd,'Gradient Descent Method')
+
+'''Newton method'''
+
+theta=np.array([0.0,0.0])
+for i in range(1):
+    y_pred_nt=x_b.dot(theta)
+    g=(1/n)*x_b.T.dot(y_pred_nt-y_train)
+    h=(1/n)*x_b.T.dot(x_b)
+    theta-=np.linalg.inv(h).dot(g)
+
+w_nt=theta[0]
+b_nt=theta[1]
+print(f'Newton Method: w={w_nt:.4f}, b={b_nt:.4f}')
+
+train_pred_nt=predict(x_train,w_nt,b_nt)
+test_pred_nt=predict(x_test,w_nt,b_nt)
+
+train_mse_nt=np.mean((train_pred_nt - y_train) ** 2)
+test_mse_nt=np.mean((test_pred_nt - y_test) ** 2)
+print(f'Train: {train_mse_nt:.4f}, Test: {test_mse_nt:.4f}\n')
+
+# 绘图
+x_line_train_nt=np.array([min(x_train),max(x_train)])
+y_line_train_nt=predict(x_line_train_nt,w_nt,b_nt)
+x_line_test_nt=np.array([min(x_test),max(x_test)])
+y_line_test_nt=predict(x_line_test_nt,w_nt,b_nt)
+plot_fit(x_line_train_nt,y_line_train_nt,x_line_test_nt,y_line_test_nt,'Newton Method')
+
+    
