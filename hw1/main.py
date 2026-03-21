@@ -175,6 +175,6 @@ x_line_train_nt=np.array([min(x_train),max(x_train)])
 y_line_train_nt=predict(x_line_train_nt,w_nt,b_nt)
 x_line_test_nt=np.array([min(x_test),max(x_test)])
 y_line_test_nt=predict(x_line_test_nt,w_nt,b_nt)
-plot_fit(x_line_train_nt,y_line_train_nt,x_line_test_nt,y_line_test_nt,'Newton Method')
+# plot_fit(x_line_train_nt,y_line_train_nt,x_line_test_nt,y_line_test_nt,'Newton Method')
 
     
