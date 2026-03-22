@@ -1,6 +1,5 @@
 '''
 date: 2026/03/20
-author: css
 id: 23375158
 description: 
     给定一组二维数据： Data4Regression， 其中表单一为训练数据，表单二为测试数据。 
@@ -12,6 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+
+# 是否绘图
+open_plot=True
 
 '''load data & plot scatter figure'''
 
@@ -29,14 +31,14 @@ test_df=pd.read_excel(file_path,sheet_name=1)
 # save
 x_train = df['x'].values
 y_train = df['y_complex'].values
-x_test = test_df['x_new']
-y_test = test_df['y_new_complex']
+x_test = test_df['x_new'].values
+y_test = test_df['y_new_complex'].values
 
 # plot
 plt.figure(figsize=(10, 6))
 plt.scatter(x_train, y_train, color='blue', marker='o', label='Training Data')
 plt.scatter(x_test, y_test, color='red', marker='x', label='Testing Data')
-plt.title('Training Data Scatter Plot')
+plt.title('Data Scatter Plot')
 plt.xlabel('x')
 plt.ylabel('y_complex')
 
@@ -48,13 +50,13 @@ plt.grid(linestyle='--', alpha=0.7)
 save_path = 'hw1/asserts'
 if not os.path.exists(save_path):
     os.makedirs(save_path)
-# plt.savefig(os.path.join(save_path, 'scatter_plot.png'))
+plt.savefig(os.path.join(save_path, 'scatter_plot.png'))
 
 # plt.show()
 
 def plot_fit(x_line,y_line,x_line_test,y_line_test,title):
     fig,axes=plt.subplots(1,2,figsize=(12,4))
-    fig.suptitle(f'{title} Fit', fontsize=16)
+    fig.suptitle(f'{title}', fontsize=16)
     axes[0].set_ylim(-3, 3)
     axes[1].set_ylim(-3, 3)
 
@@ -72,7 +74,7 @@ def plot_fit(x_line,y_line,x_line_test,y_line_test,title):
     
     plt.tight_layout()
     plt.savefig(os.path.join(save_path, f'{title}_fit.png'))
-    plt.show()
+    # plt.show()
 
 '''least square method'''
 
@@ -102,8 +104,8 @@ x_line_train=np.array([min(x_train),max(x_train)])
 y_line_train=predict(x_line_train,w_ls,b_ls)
 x_line_test=np.array([min(x_test),max(x_test)])
 y_line_test=predict(x_line_test,w_ls,b_ls)
-
-# plot_fit(x_line_train,y_line_train,x_line_test,y_line_test,'Least Square Method')
+if open_plot:
+    plot_fit(x_line_train,y_line_train,x_line_test,y_line_test,'Least Square Method')
 
 '''gradient descent method'''
 
@@ -148,7 +150,8 @@ x_line_train_gd=np.array([min(x_train),max(x_train)])
 y_line_train_gd=predict(x_line_train_gd,w_gd,b_gd)
 x_line_test_gd=np.array([min(x_test),max(x_test)])
 y_line_test_gd=predict(x_line_test_gd,w_gd,b_gd)
-# plot_fit(x_line_train_gd,y_line_train_gd,x_line_test_gd,y_line_test_gd,'Gradient Descent Method')
+if open_plot:
+    plot_fit(x_line_train_gd,y_line_train_gd,x_line_test_gd,y_line_test_gd,'Gradient Descent Method')
 
 '''Newton method'''
 
@@ -175,6 +178,74 @@ x_line_train_nt=np.array([min(x_train),max(x_train)])
 y_line_train_nt=predict(x_line_train_nt,w_nt,b_nt)
 x_line_test_nt=np.array([min(x_test),max(x_test)])
 y_line_test_nt=predict(x_line_test_nt,w_nt,b_nt)
-# plot_fit(x_line_train_nt,y_line_train_nt,x_line_test_nt,y_line_test_nt,'Newton Method')
+if open_plot:
+    plot_fit(x_line_train_nt,y_line_train_nt,x_line_test_nt,y_line_test_nt,'Newton Method')
 
-    
+
+'''polynomial regression'''
+
+x_poly_train=np.vander(x_train,11)
+# print(x_poly_train.shape)
+
+W_poly=np.linalg.inv(x_poly_train.T.dot(x_poly_train)).dot(x_poly_train.T).dot(y_train)
+
+train_pred_poly=np.polyval(W_poly,x_train)
+test_pred_poly=np.polyval(W_poly,x_test)
+train_mse_poly=np.mean((train_pred_poly - y_train) ** 2)
+test_mse_poly=np.mean((test_pred_poly - y_test) ** 2)
+
+print(f'Polynomial Regression: \nTrain: {train_mse_poly:.4f}, Test: {test_mse_poly:.4f}\n')
+
+x_line_train_poly=np.linspace(min(x_train),max(x_train),100)
+y_line_train_poly=np.polyval(W_poly,x_line_train_poly)
+x_line_test_poly=np.linspace(min(x_test),max(x_test),100)
+y_line_test_poly=np.polyval(W_poly,x_line_test_poly)
+if open_plot:
+    plot_fit(x_line_train_poly,y_line_train_poly,x_line_test_poly,y_line_test_poly,'Polynomial Regression')
+
+
+'''knn regression'''
+
+# distances=np.abs(x_train-)
+def knn_predict(x_query ,k):
+    distances=np.abs(x_train-x_query)
+    knn_inx=np.argsort(distances)[:k]
+    neighbor_labels=y_train[knn_inx]
+    return np.mean(neighbor_labels)
+
+
+k=3
+train_pred_knn=np.array([knn_predict(x,k) for x in x_train])
+test_pred_knn=np.array([knn_predict(x,k) for x in x_test])
+train_mse_knn=np.mean((train_pred_knn - y_train) ** 2)
+test_mse_knn=np.mean((test_pred_knn - y_test) ** 2)
+print(f'KNN Regression: \nTrain: {train_mse_knn:.4f}, Test: {test_mse_knn:.4f}\n')
+
+# plot
+x_line_train_knn=np.linspace(min(x_train),max(x_train),100)
+y_line_train_knn=np.array([knn_predict(x,k) for x in x_line_train_knn])
+x_line_test_knn=np.linspace(min(x_test),max(x_test),100)
+y_line_test_knn=np.array([knn_predict(x,k) for x in x_line_test_knn])
+if open_plot:
+    plot_fit(x_line_train_knn,y_line_train_knn,x_line_test_knn,y_line_test_knn,'KNN Regression (k=3)')
+
+
+# from sklearn.neighbors import KNeighborsRegressor
+
+# # knn regression
+# tree_reg = KNeighborsRegressor(n_neighbors=5)
+
+# tree_reg.fit(x_train.reshape(-1, 1), y_train)
+
+
+# train_pred_tree = tree_reg.predict(x_train.reshape(-1, 1))
+# test_pred_tree = tree_reg.predict(x_test.reshape(-1, 1))
+# train_mse_tree = np.mean((train_pred_tree - y_train) ** 2)
+# test_mse_tree = np.mean((test_pred_tree - y_test) ** 2)
+# print(f'Decision Tree Regression - Train MSE: {train_mse_tree:.4f}, Test MSE: {test_mse_tree:.4f}\n')
+
+# x_line_train_tree = np.linspace(min(x_train), max(x_train), 100)
+# y_line_train_tree = tree_reg.predict(x_line_train_tree.reshape(-1, 1))
+# x_line_test_tree = np.linspace(min(x_test), max(x_test), 100)
+# y_line_test_tree = tree_reg.predict(x_line_test_tree.reshape(-1, 1))
+# plot_fit(x_line_train_tree, y_line_train_tree, x_line_test_tree, y_line_test_tree, 'Decision Tree Regression')
