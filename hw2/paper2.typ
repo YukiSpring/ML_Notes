@@ -92,6 +92,23 @@ $ G(p) = 1 - sum_(i=1)^K p_i^2 $
 2. 达到预设的最大深度（Max Depth），防止过拟合。
 3. 节点内样本数小于预设阈值。
 
+== 3.2 AdaBoost (Adaptive Boosting)
+AdaBoost 是一种迭代式的集成学习算法。其核心思想是将多个“弱分类器”组合成一个“强分类器”。
+
+=== 3.2.1 Weak Learner: Decision Stump
+在本实验中，AdaBoost 采用决策桩（Decision Stump）作为基学习器。决策桩是深度为 1 的决策树，仅在 3D 空间中进行一次轴对齐切分。虽然单棵桩的分类能力极弱，但 AdaBoost 通过改变样本权重使其关注“难点”。
+
+=== 3.2.2 Weight Update Mechanism
+算法为每个训练样本分配权重 $D$。在每一轮迭代 $m$ 中：
+1. 计算当前弱分类器的加权误差率 $epsilon_m$。
+2. 计算该分类器的权重系数（话语权）$alpha_m$：
+  $ alpha_m = 1/2 ln((1 - epsilon_m) / epsilon_m) $
+3. 更新样本权重：分错样本权重增加，分对样本权重减少。利用标签 $y in {-1, 1}$ 的特性，更新公式为：
+  $ D_(m+1) = D_m dot exp(-alpha_m y hat(y)_m) $
+
+=== 3.2.3 Final Consensus
+最终预测结果由所有弱分类器加权投票决定：
+$ H(x) = "sign"(sum_(m=1)^M alpha_m h_m (x)) $
 = 4 Experimental Studies
 
 == 4.1 Data Analysis
@@ -116,17 +133,80 @@ $ G(p) = 1 - sum_(i=1)^K p_i^2 $
   caption: [决策树分类性能评估],
 )
 
-#v(1em)
-#figure(
-  image("asserts/Decision Tree Train Error Analysis.png", width: 90%),
-  caption: [决策树预测错误点 3D 分析],
+#grid(
+  columns: (1fr, 1fr),
+  gutter: 10pt,
+  figure(
+    image("asserts/Decision Tree Test Error Analysis.png", width: 100%),
+    caption: [Decision Tree 测试集错误分析],
+  ),
+  figure(
+    image("asserts/Decision Tree Train Error Analysis.png", width: 100%),
+    caption: [Decision Tree 训练集错误分析],
+  ),
 )
-#v(1em)
-#figure(
-  image("asserts/Decision Tree Test Error Analysis.png", width: 90%),
-  caption: [决策树预测错误点 3D 分析],
-)
+
 
 === 4.2.1 结果分析
 通过 3D 错误点分析图可以观察到，预测错误点（红色叉号）主要集中在两个月牙的交汇边缘。
 原因分析：决策树的切分边界永远是轴对齐（Axis-aligned）的，即在 3D 空间中表现为垂直于坐标轴的平整切面。对于 Make-Moons 这种平滑弯曲的流形数据，轴对齐的切平面只能通过不断的递归细分来近似逼近圆弧边界，这导致模型在深度有限时难以完美刻画非线性边界，容易产生阶梯状的分类误差.
+
+== 4.3 AdaBoost Results
+设置迭代次数 $M = 20$，实验结果如下：
+
+#figure(
+  table(
+    columns: (4cm, 3cm, 3cm),
+    inset: 10pt,
+    align: center,
+    [*方法*], [*训练准确率*], [*测试准确率*],
+    [手撕 AdaBoost], [待填写%], [69.20%],
+    [Sklearn AdaBoost], [待填写%], [73.30%],
+  ),
+  caption: [AdaBoost 分类性能评估],
+)
+
+#grid(
+  columns: (1fr, 1fr),
+  gutter: 10pt,
+  figure(
+    image("asserts/AdaBoost + Decision Tree Train Error Analysis.png", width: 100%),
+    caption: [AdaBoost 训练集错误分析],
+  ),
+  figure(
+    image("asserts/AdaBoost + Decision Tree Test Error Analysis.png", width: 100%),
+    caption: [AdaBoost 测试集错误分析],
+  ),
+)
+
+=== 4.3.1 结果分析
+实验数据显示，在本 3D 数据集下，AdaBoost 的测试准确率（69.20%）显著低于单棵深度为 5 的决策树（88.80%）。
+原因分析：
+1. *弱学习器能力受限*：由于 3D Make-Moons 的交织结构非常复杂，仅靠 20 棵“决策桩”在空间中的简单线性叠加，难以构建出足够精细的非线性边界来包裹弯曲的流形。
+2. *对噪声的敏感性*：AdaBoost 会不断强化分错样本的权重。在噪声水平 $n=0.2$ 的情况下，算法可能过度关注边缘的随机噪点，导致模型产生一定的过拟合或分类逻辑紊乱。
+
+== 4.4 Support Vector Machine (SVM)
+为了进一步探索非线性边界的构建，本文采用了 SVM 并对比了三种不同的核函数。
+
+#figure(
+  table(
+    columns: (4cm, 3cm, 3cm),
+    inset: 10pt,
+    align: center,
+    [*核函数 (Kernel)*], [*训练准确率*], [*测试准确率*],
+    [Linear], [待填写%], [67.00%],
+    [Polynomial], [待填写%], [86.50%],
+    [RBF (Gaussian)], [待填写%], [*98.50%*],
+  ),
+  caption: [SVM 不同核函数的性能对比],
+)
+
+=== 4.4.1 结果分析
+1. *Linear Kernel*：由于数据本质是高度非线性的，线性核仅能生成超平面，准确率最低。
+2. *RBF Kernel*：表现最优（98.50%）。RBF 核通过将数据映射到无穷维空间，在 3D 空间中形成了平滑且紧致的包络边界，完美契合了月牙形数据的几何特性。
+
+= 5 Conclusions
+通过本次实验对比，我们得出以下结论：
+1. *模型匹配度*：对于 3D 弯曲流形数据，基于核函数的 SVM（尤其是 RBF）展现了远超树类模型的拟合能力。
+2. *集成学习的局限*：AdaBoost 虽然能提升弱分类器性能，但在基础组件过于简单或迭代次数不足时，其表现可能不如深度适宜的单棵决策树。
+3. *算法实现验证*：手写代码实现的决策树与官方库结果高度一致，证明了算法逻辑的正确性。

@@ -288,52 +288,51 @@ print(f"AdaBoost + Decision Tree Accuracy: {acc_ada_test:.4f} (Test), {acc_ada_t
 plot_3d_error(x_test, y_test_ada, y_pred_ada_test, title="AdaBoost + Decision Tree Test Error Analysis")
 plot_3d_error(x_train, y_train_ada, y_pred_ada_train, title="AdaBoost + Decision Tree Train Error Analysis")
 
+
+from sklearn.svm import SVC
+
+kernels = ['linear', 'poly', 'rbf']
+
+for kernel in kernels:
+    model=SVC(kernel=kernel,C=1.0,gamma='scale')
+    model.fit(x_train, y_train)
+    y_pred_svm_test=model.predict(x_test)
+    y_pred_svm_train=model.predict(x_train)
+    acc_svm_test=np.mean(y_pred_svm_test==y_test)
+    acc_svm_train=np.mean(y_pred_svm_train==y_train)
+    print(f"SVM ({kernel} kernel) Accuracy: {acc_svm_test:.4f} (Test), {acc_svm_train:.4f} (Train)")
+    plot_3d_error(x_test, y_test, y_pred_svm_test, title=f"SVM ({kernel} kernel) Test Error Analysis")
+    plot_3d_error(x_train, y_train, y_pred_svm_train, title=f"SVM ({kernel} kernel) Train Error Analysis")
+
+
+
 # from sklearn.tree import DecisionTreeClassifier
 # from sklearn.ensemble import AdaBoostClassifier
-# from sklearn.svm import SVC
 # from sklearn.metrics import accuracy_score
 
 
 # results = {}
 
-# # --- 1. 官方版 决策树 ---
-# # max_depth 设为你手撕时的深度，方便公平对比
+# # --- 决策树 ---
 # sk_dt = DecisionTreeClassifier(max_depth=5, random_state=42)
 # sk_dt.fit(x_train, y_train)
 # y_pred_dt = sk_dt.predict(x_test)
 # results['Decision Tree (Sklearn)'] = accuracy_score(y_test, y_pred_dt)
 
-# # --- 2. 官方版 AdaBoost ---
-# # n_estimators 就是你代码里的 M (迭代次数)
+# # --- AdaBoost ---
 # sk_ada = AdaBoostClassifier(n_estimators=20, random_state=42)
 # sk_ada.fit(x_train, y_train)
 # y_pred_ada = sk_ada.predict(x_test)
 # results['AdaBoost (Sklearn)'] = accuracy_score(y_test, y_pred_ada)
 
-# # --- 3. 官方版 SVM (三种核函数) ---
-# # 线性核 (Linear)
-# sk_svm_lin = SVC(kernel='linear')
-# sk_svm_lin.fit(x_train, y_train)
-# results['SVM (Linear)'] = accuracy_score(y_test, sk_svm_lin.predict(x_test))
-
-# # 多项式核 (Polynomial)
-# sk_svm_poly = SVC(kernel='poly', degree=3) # degree=3 表示 3 次方
-# sk_svm_poly.fit(x_train, y_train)
-# results['SVM (Poly)'] = accuracy_score(y_test, sk_svm_poly.predict(x_test))
-
-# # 径向基核 (RBF/高斯核) —— 处理这种弯曲数据的“大杀器”
-# sk_svm_rbf = SVC(kernel='rbf')
-# sk_svm_rbf.fit(x_train, y_train)
-# results['SVM (RBF)'] = accuracy_score(y_test, sk_svm_rbf.predict(x_test))
-
-# # --- 打印对比结果 ---
+# # --- 对比结果 ---
 # print("\n" + "="*30)
 # print("   Model Performance Comparison")
 # print("="*30)
-# # 把你自己手撕的结果也打印出来做对比（假设你存了这些变量）
 # print(f"Your Manual DT:     {acc_dt_test:.4f}") 
 # print(f"Your Manual Ada:    {acc_ada_test:.4f}")
 # print("-" * 30)
 # for model, acc in results.items():
 #     print(f"{model:20}: {acc:.4f}")
 # print("="*30)
+
