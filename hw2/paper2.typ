@@ -98,7 +98,7 @@ $ G(p) = 1 - sum_(i=1)^K p_i^2 $
 本实验生成的 3D Make-Moons 数据具有显著的非线性特征，两个月牙形分类在 3D 空间中交织。设置噪音水平为 $n=0.2$，这增加类分类边界的模糊性，要求模型具备较强的泛化能力。
 
 #figure(
-  image("asserts/dt.png", width: 80%),
+  image("asserts/3d_make_moons.png", width: 80%),
   caption: [3D Make-Moons 原始数据分布],
 )
 
@@ -118,10 +118,15 @@ $ G(p) = 1 - sum_(i=1)^K p_i^2 $
 
 #v(1em)
 #figure(
-  image("asserts/dt.png", width: 90%),
+  image("asserts/Decision Tree Train Error Analysis.png", width: 90%),
+  caption: [决策树预测错误点 3D 分析],
+)
+#v(1em)
+#figure(
+  image("asserts/Decision Tree Test Error Analysis.png", width: 90%),
   caption: [决策树预测错误点 3D 分析],
 )
 
 === 4.2.1 结果分析
-通过 3D 错误点分析图可以观察到，预测错误点（红色叉号）主要集中在两个月牙的**交汇边缘**。
-原因分析：决策树的切分边界永远是**轴对齐（Axis-aligned）**的，即在 3D 空间中表现为垂直于坐标轴的平整切面。对于 Make-Moons 这种平滑弯曲的流形数据，轴对齐的切平面只能通过不断的递归细分来近似逼近圆弧边界，这导致模型在深度有限时难以完美刻画非线性边界，容易产生阶梯状的分类误差。
+通过 3D 错误点分析图可以观察到，预测错误点（红色叉号）主要集中在两个月牙的交汇边缘。
+原因分析：决策树的切分边界永远是轴对齐（Axis-aligned）的，即在 3D 空间中表现为垂直于坐标轴的平整切面。对于 Make-Moons 这种平滑弯曲的流形数据，轴对齐的切平面只能通过不断的递归细分来近似逼近圆弧边界，这导致模型在深度有限时难以完美刻画非线性边界，容易产生阶梯状的分类误差.
