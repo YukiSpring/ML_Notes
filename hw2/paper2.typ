@@ -7,7 +7,6 @@
   size: 12pt,
   lang: "zh",
   region: "cn",
-  // font:
 )
 
 #set par(
@@ -16,9 +15,7 @@
   leading: 0.8em,
 )
 
-
-
-// 自定义一级标题样式
+// 自定义标题样式
 #show heading.where(level: 1): it => [
   #set text(size: 16pt, weight: "bold")
   #set align(center)
@@ -27,108 +24,122 @@
   #v(0.5em)
 ]
 
-// 自定义二级标题样式
 #show heading.where(level: 2): it => [
   #set text(size: 13.5pt, weight: "bold")
-  #v(0.5em)
+  #v(1em)
   #align(center)[#it.body]
-  #v(0.5em)
+  #v(1em)
 ]
 
 #show heading.where(level: 3): it => [
   #set text(size: 12pt, weight: "bold")
-  #v(0.5em)
+  #v(1em)
   #align(center)[#it.body]
-  #v(0.5em)
+  #v(1em)
 ]
-// 表格居中
+
 #show table: set align(center)
 
-
-
 // 正文开始
-
 #align(center)[
-  #text(size: 20pt, weight: "bold")[Machine Learning Homework 1]
+  #text(size: 20pt, weight: "bold")[Machine Learning Homework 2]
   #v(0.5em)
   蔡燊生 \
   #link("mailto:bronze-age@qq.com")
-  // #v(1em)
 ]
-
 
 = 1 Abstract
 
 #[
   #set text(size: 11pt)
-  针对 3D 空间中线性不可分的 Make-Moons 数据集分类问题，本文对比研究了三种主流分类算法：决策树（Decision Tree）、集成学习算法 AdaBoost 以及支持向量机（SVM）。首先，本文通过手撕代码实现了基于基尼系数（Gini Impurity）的递归决策树，并探讨了轴对齐切分在 3D 非线性空间中的局限性。实验结果表明，虽然单棵决策树能捕捉基本的空间分布，但在处理交织严重的边缘区域时存在明显的性能瓶颈。
+  针对 3D 空间中线性不可分的 Make-Moons 数据集分类问题，本文对比研究了三种分类算法：决策树（Decision Tree）、集成学习算法 AdaBoost 以及支持向量机（SVM）。本文通过手动实现基于基尼系数的递归决策树与 AdaBoost 框架，探讨了不同模型在处理非线性流形数据时的表达能力。实验结果显示，SVM 在采用 RBF 核函数时取得了 98.7% 的最优准确率，而单棵决策树表现优于基于决策桩的 AdaBoost，揭示了模型复杂程度与空间切分方式对 3D 分类性能的关键影响。
 ]
 
 = 2 Problem Statement
 
-给定一组由程序生成的 3D 数据集（make-moons-3d），共包含 1000 个训练样本，分为 $C_0$ 与 $C_1$ 两类。要求：
-1. 利用训练数据进行模型构建，并生成同分布的 500 个测试样本进行性能评估。
-2. 比较决策树、AdaBoost（配合决策树）以及 SVM（至少三种核函数）的分类性能。
-3. 深入讨论不同算法在处理该 3D 非线性数据时的优劣原因。
+给定一组由程序生成的 3D 数据集，共包含 1000 个训练样本，分为 $C_0$ 与 $C_1$ 两类。要求：
+1. 利用训练数据进行模型构建，并生成同分布的 500 个测试样本（每类 250 个）进行性能评估。
+2. 比较Decision Tree、AdaBoost+Decision Tree 以及 SVM（至少三种核函数）的分类性能。
+3. 讨论不同算法在处理该数据时的优劣原因。
+
 
 = 3 Methodology
 
 == 3.1 Decision Tree Classification
-决策树是一种基于“分而治之”策略的非参数监督学习方法。在 3D 分类任务中，其核心逻辑是在特征空间中寻找最优的超平面切刀。
+决策树通过递归地将特征空间划分为若干个正交的超矩形区域来进行分类。在 3D 空间中，这表现为一系列垂直于坐标轴的平面切割。
 
 === 3.1.1 Gini Impurity
-本文采用基尼系数作为衡量节点“纯度”的标准。对于包含 $K$ 个类别的集合，$G$ 指数定义为：
-$ G(p) = 1 - sum_(i=1)^K p_i^2 $
-其中 $p_i$ 是类别 $i$ 在当前节点中的样本占比。$G$ 指数越小，代表节点的类别纯度越高。
+本文采用基尼指数来度量节点 $p$ 的纯度。对于二分类问题，若类别 $k in {0, 1}$ 在节点中的概率为 $p_k$，则基尼不纯度定义为：
+$ G(p) = 1 - sum_(k=0)^1 p_k^2 $
+#h(2em)当节点内所有样本属于同一类时，$G(p) = 0$。算法的目标是寻找能够最大限度降低基尼指数的切分方案。
 
+#v(2em)
 === 3.1.2 Best Split Search
-在每一个决策节点，算法遍历所有特征维度（X, Y, Z）及其所有可能的取值（Threshold），计算切分后的加权基尼指数：
-$ G(p) = 1 - sum_(i=1)^K p_i^2 $
-算法选择使 $G(p)$ 最小的特征及其阈值作为该节点的切分准则。
+对于当前节点，算法遍历所有特征维度 $d in {X, Y, Z}$ 及其所有可能的候选阈值 $t$。切分后的加权基尼指数为：
+$ G_"split" = n_"left" / n G(p_"left") + n_"right" / n G(p_"right") $
 
-=== 3.1.3 Recursive Tree Building
-通过递归调用上述切分逻辑，直至满足停止条件：
-1. 节点内样本全部属于同一类别（$G = 0$）。
-2. 达到预设的最大深度（Max Depth），防止过拟合。
-3. 节点内样本数小于预设阈值。
+#h(2em)
+其中 $n$ 为样本总数，$n_"left"$ 和 $n_"right"$ 分别为左右子节点的样本数。算法选择使 $G_"split"$ 最小的 $(d, t)$ 组合作为当前节点的切分准则。
 
-== 3.2 AdaBoost (Adaptive Boosting)
-AdaBoost 是一种迭代式的集成学习算法。其核心思想是将多个“弱分类器”组合成一个“强分类器”。
+== 3.2 AdaBoost + Decision Tree
+AdaBoost 是一种集成学习方法，其核心思想是通过迭代构建一系列弱分类器，并根据其性能分配权重，最终组合成强分类器。
 
-=== 3.2.1 Weak Learner: Decision Stump
-在本实验中，AdaBoost 采用决策桩（Decision Stump）作为基学习器。决策桩是深度为 1 的决策树，仅在 3D 空间中进行一次轴对齐切分。虽然单棵桩的分类能力极弱，但 AdaBoost 通过改变样本权重使其关注“难点”。
+=== 3.2.1 Decision Stump
+本实验使用决策桩作为弱分类器，即深度为 1 的决策树。其数学表达式为：
+$ h(x; d, t, p) = cases(1 & "if " p dot x_d < p dot t, -1 & "otherwise") $
+其中 $p in {1, -1}$ 为极性系数，用于控制不等式的方向。
 
-=== 3.2.2 Weight Update Mechanism
-算法为每个训练样本分配权重 $D$。在每一轮迭代 $m$ 中：
-1. 计算当前弱分类器的加权误差率 $epsilon_m$。
-2. 计算该分类器的权重系数（话语权）$alpha_m$：
-  $ alpha_m = 1/2 ln((1 - epsilon_m) / epsilon_m) $
-3. 更新样本权重：分错样本权重增加，分对样本权重减少。利用标签 $y in {-1, 1}$ 的特性，更新公式为：
-  $ D_(m+1) = D_m dot exp(-alpha_m y hat(y)_m) $
-
-=== 3.2.3 Final Consensus
-最终预测结果由所有弱分类器加权投票决定：
+=== 3.2.2 Weight Update
+设第 $m$ 轮迭代时样本权重分布为 $D_m$。弱分类器 $h_m$ 的加权误差率为：
+$ epsilon_m = sum_(i=1)^N D_m (i) dot II (h_m (x_i) != y_i) $
+分类器的权重$alpha_m$ 计算公式为：
+$ alpha_m = 1/2 ln((1 - epsilon_m) / epsilon_m) $
+更新下一轮样本权重 $D_(m+1)$，使模型更关注被误分的样本：
+$ D_(m+1) (i) = (D_m (i) dot exp(-alpha_m y_i h_m (x_i))) / Z_m $
+其中 $Z_m$ 为规范化因子，确保 $sum D = 1$。
+#v(2em)
+#v(2em)
+=== 3.2.3 Strong Classifier
+$M$ 轮迭代后，最终的强分类器通过对弱分类器进行加权求和并取符号函数得到：
 $ H(x) = "sign"(sum_(m=1)^M alpha_m h_m (x)) $
+
+== 3.3 Support Vector Machine
+支持向量机的目标是在高维空间中寻找一个最优超平面，使得分类间隔（Margin）最大化。
+
+=== 3.3.1 Hard Margin SVM
+SVM 寻找满足 $y_i (w^T x_i + b) >= 1$ 的超平面，通过最小化 $1/2 ||w||^2$ 来最大化间隔。引入拉格朗日乘子 $lambda_i$，其对偶形式为：
+$ max_(lambda) sum_(i=1)^N lambda_i - 1/2 sum_(i=1)^N sum_(j=1)^N lambda_i lambda_j y_i y_j K(x_i, x_j) $
+满足约束：$sum lambda_i y_i = 0$ 且 $0 <= lambda_i <= C$。
+
+=== 3.3.2 Kernel Trick
+针对 3D Make-Moons 的非线性特性，通过核函数将输入空间映射到高维特征空间：
+1. 线性核 (Linear): 假设数据线性可分。$K(x_i, x_j) = x_i^T x_j$
+2. 多项式核 (Polynomial): 构建高次非线性边界。$K(x_i, x_j) = (gamma x_i^T x_j + r)^d$
+3. RBF 核 (Radial Basis Function): 利用样本间的欧氏距离构建局部感应边界，理论上可映射至无穷维空间。$K(x_i, x_j) = exp(-gamma ||x_i - x_j||^2)$
+
+
+
 = 4 Experimental Studies
 
 == 4.1 Data Analysis
-本实验生成的 3D Make-Moons 数据具有显著的非线性特征，两个月牙形分类在 3D 空间中交织。设置噪音水平为 $n=0.2$，这增加类分类边界的模糊性，要求模型具备较强的泛化能力。
+3D Make-Moons 数据呈现出两个交织的月牙形状，且带有 $n=0.2$ 的高斯噪声。这要求分类器必须能构建复杂的非线性边界。
 
+生成的训练数据和测试数据分布如下图：
 #figure(
   image("asserts/3d_make_moons.png", width: 80%),
-  caption: [3D Make-Moons 原始数据分布],
+  caption: [3D Make-Moons 训练数据与测试数据分布],
 )
 
 == 4.2 Decision Tree Results
-本文手动实现了决策树算法，并设置最大深度 $"max_depth" = 5$。实验结果如下：
+设置最大深度为 5，实验结果如下：
 
 #figure(
   table(
     columns: (4cm, 3cm, 3cm),
     inset: 10pt,
     align: center,
-    [*depth*], [*训练准确率*], [*测试准确率*],
-    [5], [%], [待填写%],
+    [*Max Depth*], [*训练准确率*], [*测试准确率*],
+    [5], [91.25%], [90.00%],
   ),
   caption: [决策树分类性能评估],
 )
@@ -137,31 +148,28 @@ $ H(x) = "sign"(sum_(m=1)^M alpha_m h_m (x)) $
   columns: (1fr, 1fr),
   gutter: 10pt,
   figure(
-    image("asserts/Decision Tree Test Error Analysis.png", width: 100%),
-    caption: [Decision Tree 测试集错误分析],
+    image("asserts/Decision Tree Train Error Analysis.png", width: 100%),
+    caption: [DT 训练集错误分析],
   ),
   figure(
-    image("asserts/Decision Tree Train Error Analysis.png", width: 100%),
-    caption: [Decision Tree 训练集错误分析],
+    image("asserts/Decision Tree Test Error Analysis.png", width: 100%),
+    caption: [DT 测试集错误分析],
   ),
 )
 
-
 === 4.2.1 结果分析
-通过 3D 错误点分析图可以观察到，预测错误点（红色叉号）主要集中在两个月牙的交汇边缘。
-原因分析：决策树的切分边界永远是轴对齐（Axis-aligned）的，即在 3D 空间中表现为垂直于坐标轴的平整切面。对于 Make-Moons 这种平滑弯曲的流形数据，轴对齐的切平面只能通过不断的递归细分来近似逼近圆弧边界，这导致模型在深度有限时难以完美刻画非线性边界，容易产生阶梯状的分类误差.
+决策树取得了 90% 的优异表现。由于模型深度足够（depth=5），其能够在 3D 空间中形成较为复杂的分割边界，成功捕捉了月牙形状的非线性特征。然而，仍有部分样本位于边界附近，导致误分类。
 
 == 4.3 AdaBoost Results
-设置迭代次数 $M = 20$，实验结果如下：
+设置迭代轮数 $M = 20$，实验结果如下：
 
 #figure(
   table(
     columns: (4cm, 3cm, 3cm),
     inset: 10pt,
     align: center,
-    [*方法*], [*训练准确率*], [*测试准确率*],
-    [手撕 AdaBoost], [待填写%], [69.20%],
-    [Sklearn AdaBoost], [待填写%], [73.30%],
+    [*迭代轮数 M*], [*训练准确率*], [*测试准确率*],
+    [20], [69.55%], [69.10%],
   ),
   caption: [AdaBoost 分类性能评估],
 )
@@ -180,33 +188,73 @@ $ H(x) = "sign"(sum_(m=1)^M alpha_m h_m (x)) $
 )
 
 === 4.3.1 结果分析
-实验数据显示，在本 3D 数据集下，AdaBoost 的测试准确率（69.20%）显著低于单棵深度为 5 的决策树（88.80%）。
-原因分析：
-1. *弱学习器能力受限*：由于 3D Make-Moons 的交织结构非常复杂，仅靠 20 棵“决策桩”在空间中的简单线性叠加，难以构建出足够精细的非线性边界来包裹弯曲的流形。
-2. *对噪声的敏感性*：AdaBoost 会不断强化分错样本的权重。在噪声水平 $n=0.2$ 的情况下，算法可能过度关注边缘的随机噪点，导致模型产生一定的过拟合或分类逻辑紊乱。
+由结果可见，AdaBoost 的表现不佳。主要原因在于其基学习器（决策桩）过于简单，仅一次轴对齐切分无法在 3D 空间中形成复杂的包络结构。20 轮叠加后的线性投票仍难以对抗高度弯曲的数据分布。
 
-== 4.4 Support Vector Machine (SVM)
-为了进一步探索非线性边界的构建，本文采用了 SVM 并对比了三种不同的核函数。
+== 4.4 SVM Results
+使用 Scikit-learn 库直接调用SVM，对比三种核函数，结果如下：
 
 #figure(
   table(
     columns: (4cm, 3cm, 3cm),
     inset: 10pt,
     align: center,
-    [*核函数 (Kernel)*], [*训练准确率*], [*测试准确率*],
-    [Linear], [待填写%], [67.00%],
-    [Polynomial], [待填写%], [86.50%],
-    [RBF (Gaussian)], [待填写%], [*98.50%*],
+    [*核函数*], [*训练准确率*], [*测试准确率*],
+    [Linear], [67.80%], [68.50%],
+    [Polynomial (d=3)], [86.80%], [87.30%],
+    [*RBF (Gaussian)*], [*98.35%*], [*98.70%*],
   ),
   caption: [SVM 不同核函数的性能对比],
 )
 
+
+#grid(
+  columns: (1fr, 1fr),
+  gutter: 10pt,
+  figure(
+    image("asserts/SVM (linear kernel) Train Error Analysis.png", width: 100%),
+    caption: [SVM Linear Kernel 训练集错误分析],
+  ),
+  figure(
+    image("asserts/SVM (linear kernel) Test Error Analysis.png", width: 100%),
+    caption: [SVM Linear Kernel 测试集错误分析],
+  ),
+)
+
+#grid(
+  columns: (1fr, 1fr),
+  gutter: 10pt,
+  figure(
+    image("asserts/SVM (poly kernel) Train Error Analysis.png", width: 100%),
+    caption: [SVM Polynomial Kernel 训练集错误分析],
+  ),
+  figure(
+    image("asserts/SVM (poly kernel) Test Error Analysis.png", width: 100%),
+    caption: [SVM Polynomial Kernel 测试集错误分析],
+  ),
+)
+
+#grid(
+  columns: (1fr, 1fr),
+  gutter: 10pt,
+  figure(
+    image("asserts/SVM (rbf kernel) Train Error Analysis.png", width: 100%),
+    caption: [SVM RBF Kernel 训练集错误分析],
+  ),
+  figure(
+    image("asserts/SVM (rbf kernel) Test Error Analysis.png", width: 100%),
+    caption: [SVM RBF Kernel 测试集错误分析],
+  ),
+)
+
 === 4.4.1 结果分析
-1. *Linear Kernel*：由于数据本质是高度非线性的，线性核仅能生成超平面，准确率最低。
-2. *RBF Kernel*：表现最优（98.50%）。RBF 核通过将数据映射到无穷维空间，在 3D 空间中形成了平滑且紧致的包络边界，完美契合了月牙形数据的几何特性。
+1. *RBF Kernel*: 取得了最优结果。这是因为在 3D 空间中，RBF 核能根据数据局部密度生成平滑的曲面，完美捕捉了非线性拓扑结构。
+2. *Linear Kernel*: 表现最差，验证了该数据集在原空间是绝对线性不可分的。
+3. *Polynomial Kernel*: 能够拟合曲面，但在月牙的尖端处理上不如 RBF 精准。
 
 = 5 Conclusions
-通过本次实验对比，我们得出以下结论：
-1. *模型匹配度*：对于 3D 弯曲流形数据，基于核函数的 SVM（尤其是 RBF）展现了远超树类模型的拟合能力。
-2. *集成学习的局限*：AdaBoost 虽然能提升弱分类器性能，但在基础组件过于简单或迭代次数不足时，其表现可能不如深度适宜的单棵决策树。
-3. *算法实现验证*：手写代码实现的决策树与官方库结果高度一致，证明了算法逻辑的正确性。
+
+1. SVM-RBF 的优点：RBF 核函数表现最优，原因在于其本质是基于“相似度”的分类。3D 月牙数据在几何上是平滑弯曲的流形，RBF 核通过在每个支持向量周围建立径向对称的感应场，能够完美勾勒出非线性的曲面边界，从而规避了线性切分的僵硬性。
+
+2. 决策树的优点：决策树凭借其深度的局部搜索能力，通过多次“轴对齐”切割（阶梯状近似），较好地逼近了月牙的轮廓。然而，由于它无法产生倾斜或弯曲的切面，在两类交织严重的边缘区域仍存在固有的近似误差。
+
+3. AdaBoost 的局限：集成学习在本实验中表现一般。原因在于所选的弱分类器表达能力极其有限，仅能在 3D 空间中横竖切一刀。即便通过 50 轮迭代加权投票，这种“线性分段函数”的叠加在处理三维螺旋交织结构时，效率远不如深层决策树或核 SVM。
