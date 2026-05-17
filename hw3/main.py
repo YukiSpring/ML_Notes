@@ -250,5 +250,3 @@ plt.ylabel('PM2.5')
 plt.legend()
 plt.savefig('asserts/lstm_final_prediction.png')
 plt.close()
-
-print('Done!')
